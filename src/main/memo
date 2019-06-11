@@ -1,0 +1,71 @@
+2019.3.15 :
+dao:
+    dao层中的接口对应数据库的操作
+
+dataobject:
+    dataObject层中的UserDataObject类和UserPassWordObject类分别对应数据库中的表实体
+
+service:
+    model:
+        service包中的model类定义了真正的核心模型，一方面dataObject不能对前端可见，另一方面真正的模型可能需要多个dataObject类字段的“合并拼接”
+    service包下的UserService接口定义了针对核心模型的多种操作，并且由impl包下的类实现
+
+resource:
+    mapping:
+        若dao中的mapper需要针对其它属性进行select等，需要修改resource中对应mapping的xml文件，同时在mapper中实现对应selectBy方法
+
+controller:
+    viewobject:
+        model的核心模型是不能对前端可见的，所以在Controller中额外定义viewObject包，其中定义了核心模型对应的可见模型的属性字段，并在Controller中进行相应的转换
+    对异常的处理方法可能被多个Controller共享，因此将其放在基类BaseController(不一定要作为Controller使用)，然后让所有的Controller继承它
+    另外为了出现error的时候json格式的data字段只返回errorMsg和errorCode字段，需要用个map来存储，不能直接返回exception对象
+
+response:
+    返回给前端的json需要符合一定的格式约定，由response包下的CommonReturnType类定义，包含status("success","fail")和data两个字段
+
+error:
+    error包下的枚举类EmBusinessError定义了 出现不正确的业务处理结果时 的data格式包括错误码和错误信息，并定义了一些错误枚举常量。注意其中实现了setErrorMsg方法，用来对一些通用错误常量进行定制化错误信息
+    通过在Control中抛出异常，并在Controller中定义顶层ExceptionHandle方法来吸收不正确的业务处理结果。为此error包下定义了对应的异常类BusinessException
+    BusinessException是一个EmBusinessError的包装异常类，内部拥有一个EmBusinessError对象，并可以对其的errorCode和errorMsg进行查询修改
+
+************************************************************************************************************************
+2019.3.17:
+controller:
+    UserController:
+        新增login和register映射。其中register映射新建UserModel对象并调用UserService的register方法。login通过UserService的validateLogin方法获得UserModel对象，并存储在session属性内
+
+dao:
+    为了login，UserDataObjectMapper新增selectByPhone方法，注意修改resource中对应xml文件。
+
+dataobject:
+    无变化
+
+error:
+    无变化
+
+response:
+    无变化
+
+service:
+    UserService接口新增validateLogin和register方法
+    UserModel相应字段加上了validation的注解
+    UserServiceImpl类新增register方法，其中使用ValidatorImpl的validate方法对UserModel进行验证，得到的ValidationResult对象中标志为有错误，则抛出异常。并且分别在两个mapper中insertSelective对应对象，！！注意声明为Transactional
+    UserServiceImpl类新增validateLogin方法，通过手机号获得对应UserDataObject，得到ID获取UserPasswordObject。并比较传入的密码是否正确，并返回UserModel对象
+
+validator(新增):
+    ValidationResult:
+        该类统一定义了校验的结果格式：一个boolean类型的hasError标志，和存放错误信息的Map
+    ValidatorImpl声明为Component:
+        内部定义了javax.validation包下的Validator成员，pom中新增org.hibernate.validator依赖
+        实现validate方法，返回一个ValidationResult对象。内部调用javax.validation.Validator类对象的validate方法，其返回一个校验结果的set，根据set中每一项校验结果信息构造ValidationResult对象
+
+pom: 新增org.hibernate.validator依赖
+************************************************************************************************************************
+2019.3.25: 已完结
+新增item业务order业务sequence业务，新增promo模型
+其中promo活动模型内聚在item模型中，下单时会传进来一个promoId，通过和itemModel中的promoModel的id比较和status验证活动是否合理。
+注意promoModel只存放开始和结束时间，createOrder方法中，通过itemId生成itemModel时，查询对应的promoModel时会根据当前时间计算得到status，从而达到后台验证时间是否正确的情况。
+************************************************************************************************************************
+2019.3.30
+枚举类EmBusinessError中定义了setErrorMsg方法用来修改私有属性，虽然枚举类中定义的实例是单例的，但是在多个线程下并发修改属性仍旧是不安全的
+注意：经过测试，在某处修改了某个枚举实例的ErrorMsg字段后，就是真的被修改了，之后其它用到它的地方仍旧会使用被修改的值。这一点和实际使用有些出入

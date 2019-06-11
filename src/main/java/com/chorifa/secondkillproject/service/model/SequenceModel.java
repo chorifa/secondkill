@@ -1,0 +1,33 @@
+package com.chorifa.secondkillproject.service.model;
+
+public class SequenceModel {
+    private String name;
+
+    private Integer currentValue;
+
+    private Integer step;
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public Integer getCurrentValue() {
+        return currentValue;
+    }
+
+    public void setCurrentValue(Integer currentValue) {
+        this.currentValue = currentValue;
+    }
+
+    public Integer getStep() {
+        return step;
+    }
+
+    public void setStep(Integer step) {
+        this.step = step;
+    }
+}
