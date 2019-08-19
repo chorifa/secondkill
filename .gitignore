@@ -1,0 +1,5 @@
+/target
+.idea/
+/html/static/coreui*
+/html/static/gentelella*
+
